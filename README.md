@@ -13,11 +13,11 @@ Python Packages to be installed:
   - pip3 install pandas
   - pip3 install matplotlib
 
-## Installing system_monitor directly Git via pip
+## Installing gerrit_statistics directly Git via pip
 
              pip3 install --upgrade git+git://github.com/aloganat/gerrit_statistics.git
 
-## Uninstalling system_monitor
+## Uninstalling gerrit_statistics
 
              pip3 uninstall gerrit_statistics
 
