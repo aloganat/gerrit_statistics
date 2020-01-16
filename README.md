@@ -48,5 +48,5 @@ Python Packages to be installed:
                             Generates combined bar chart for the options A,B,C,D.
 
 ## Example:
-        gerrit_statistics.py D  --gerrit-url  https://review.gluster.org/ --project-name glusto-tests --start-date 2018-1-1 --end-date 2020-01-15 --csv-output-file stat.csv --chart-output-file chart.png
-        gerrit_statistics.py generate_combined_chart  --gerrit-url  https://review.gluster.org/ --project-name glusto-tests --start-date 2019-07-01 --end-date 2020-01-15 --csv-output-file stat.csv --chart-output-file chart.png --choose-options A,B,C,D
+        gerrit_statistics D  --gerrit-url  https://review.gluster.org/ --project-name glusto-tests --start-date 2018-1-1 --end-date 2020-01-15 --csv-output-file stat.csv --chart-output-file chart.png
+        gerrit_statistics generate_combined_chart  --gerrit-url  https://review.gluster.org/ --project-name glusto-tests --start-date 2019-07-01 --end-date 2020-01-15 --csv-output-file stat.csv --chart-output-file chart.png --choose-options A,B,C,D
