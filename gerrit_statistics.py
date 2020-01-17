@@ -85,7 +85,10 @@ def fetch_gerrit_statistics(args):
                     if index == 0:
                         query += ["after:"+args.start_date]
                         day = calendar.monthrange(start_year, int(list(calendar.month_name).index(mon)))[1]
-                        query += ["until:"+str(yr)+"-"+str(list(calendar.month_name).index(mon))+"-"+str(day)]
+                        #query += ["until:"+str(yr)+"-"+str(list(calendar.month_name).index(mon))+"-"+str(day)]
+                        tmp_date = str(yr)+"-"+str(list(calendar.month_name).index(mon))+"-"+str(day)
+                        tmp_date = str((dt.strptime(tmp_date, "%Y-%m-%d") + timedelta(days=1)).date())
+                        query += ["until:"+str(tmp_date)]
                     elif index == mon_num-1:
                         query = [i for i in query if (('until' not in i) and ('after' not in i)) ]
                         query += ["after:"+str(yr)+"-"+str(list(calendar.month_name).index(mon))+"-1"]
@@ -94,7 +97,10 @@ def fetch_gerrit_statistics(args):
                         query = [i for i in query if (('until' not in i) and ('after' not in i)) ]
                         day = calendar.monthrange(start_year, int(list(calendar.month_name).index(mon)))[1]
                         query += ["after:"+str(yr)+"-"+str(list(calendar.month_name).index(mon))+"-1"]
-                        query += ["until:"+str(yr)+"-"+str(list(calendar.month_name).index(mon))+"-"+str(day)]
+                        #query += ["until:"+str(yr)+"-"+str(list(calendar.month_name).index(mon))+"-"+str(day)]
+                        tmp_date = str(yr)+"-"+str(list(calendar.month_name).index(mon))+"-"+str(day)
+                        tmp_date = str((dt.strptime(tmp_date, "%Y-%m-%d") + timedelta(days=1)).date())
+                        query += ["until:"+tmp_date]
                     if st_item == "pendingreview":
                         cmd = "/changes/?q=%s" % "%20".join(query) + urllib.parse.quote_plus(' is:open (label:Verified=ok AND NOT label:Code-Review-2 AND NOT label:Code-Review-1)')
                     elif st_item == "need_to_address_comments":
