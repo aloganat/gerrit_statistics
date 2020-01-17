@@ -28,7 +28,7 @@ def fetch_gerrit_statistics(args):
         st_str = args.status
         st_list = st_str.split(',')
         from datetime import datetime as dt
-        args.start_date = str((dt.strptime(args.start_date, "%Y-%m-%d") - timedelta(days=1)).date())
+        #args.start_date = str((dt.strptime(args.start_date, "%Y-%m-%d") - timedelta(days=1)).date())
         args.end_date = str((dt.strptime(args.end_date, "%Y-%m-%d") + timedelta(days=1)).date())
         tmp_list = []
         for index_o,st_item in enumerate(st_list):
