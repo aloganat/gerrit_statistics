@@ -49,4 +49,5 @@ Python Packages to be installed:
 
 ## Example:
         gerrit_statistics D  --gerrit-url  https://review.gluster.org/ --project-name glusto-tests --start-date 2018-1-1 --end-date 2020-01-15 --csv-output-file stat.csv --chart-output-file chart.png
+        gerrit_statistics E  --gerrit-url  https://review.gluster.org/  --project-name glusto-tests --start-date 2019-11-01 --end-date 2020-01-17 --csv-output-file stat.csv --chart-output-file chart.png --reviewer bob,kevin
         gerrit_statistics generate_combined_chart  --gerrit-url  https://review.gluster.org/ --project-name glusto-tests --start-date 2019-07-01 --end-date 2020-01-15 --csv-output-file stat.csv --chart-output-file chart.png --choose-options A,B,C,D

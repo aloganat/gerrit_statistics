@@ -12,6 +12,7 @@ from matplotlib.ticker import MaxNLocator
 import matplotlib.pyplot as plt
 import urllib.parse
 from datetime import timedelta
+import os
 
 def fetch_gerrit_statistics(args):
     """
@@ -33,12 +34,15 @@ def fetch_gerrit_statistics(args):
         tmp_list = []
         for index_o,st_item in enumerate(st_list):
             query = ["project:"+args.project_name]
-            if st_item == "pendingreview" or st_item == "need_to_address_comments":
+            if st_item == "pendingreview" or st_item == "need_to_address_comments" or st_item == "patch_review_info":
                 query += ""
             else:    
                 query += ["status:"+st_item]
             if index_o == 0:
-                tmp_list.append(["Month", "Status:"+st_item])
+                if st_item == "patch_review_info":
+                    tmp_list.append(["Month", "Number of partches reviewed", "Total number of comments given", "Number of code-review +1 given", "Number of code-review +2 given"])
+                else:
+                    tmp_list.append(["Month", "Status:"+st_item])
             else:
                 tmp_list[0].append("Status:"+st_item)
             s_month = int(args.start_date.split('-')[1])
@@ -56,13 +60,53 @@ def fetch_gerrit_statistics(args):
                     cmd = "/changes/?q=%s" % "%20".join(query) + urllib.parse.quote_plus(' is:open (label:Verified=ok AND NOT label:Code-Review-2 AND NOT label:Code-Review-1)')
                 elif st_item == "need_to_address_comments":
                     cmd = "/changes/?q=%s" % "%20".join(query) + urllib.parse.quote_plus(' status:open  (label:Code-review-1 OR label:Code-review-2)')
+                elif st_item == "patch_review_info":
+                    query += ["reviewedby:"+args.reviewer]
+                    cmd = "/changes/?q=%s" % "%20".join(set(query))
                 else:
                     cmd = "/changes/?q=%s" % "%20".join(query)
                 changes = rest.get(cmd)
+                if st_item == "patch_review_info":
+                    review_count = 0
+                    change_ids = [each_review['change_id'] for each_review in changes if True]
+                    review_count = len(change_ids)
+                    sum_comments_count = 0
+                    code_review_1_sum_comments_count = 0
+                    cnt = 0
+                    for change_id in change_ids:
+                        tmp_query = "/changes/" + change_id + "/comments"
+                        out = rest.get(tmp_query)
+                        comments_count = 0
+                        for item in out.values():
+                            for i in item:
+                                if i["author"]["username"] == args.reviewer:
+                                    comments_count = comments_count + 1
+                        sum_comments_count = sum_comments_count + comments_count
+                        tmp_query = "/changes/" + change_id + "/detail"
+                        out = rest.get(tmp_query)
+                        code_review_1_comments_count = 0
+                        for item in out["labels"]["Code-Review"]["all"]:
+                            for key in item:
+                                if key == "username":
+                                    if item[key] == args.reviewer:
+                                        if item["value"] == 1:
+                                            code_review_1_comments_count = code_review_1_comments_count + 1
+                        code_review_1_sum_comments_count = code_review_1_sum_comments_count + code_review_1_comments_count
+
+                        cnt = 0
+                        if "approved" in out["labels"]["Code-Review"].keys():
+                            if out["labels"]["Code-Review"]["approved"]["username"] == args.reviewer:
+                                cnt = cnt + 1
+                        else:
+                            cnt = 0
+
                 count = len(changes)
                 for i in month_list:
                     if index_o == 0:
-                        tmp_list.append([i, count])
+                        if st_item == "patch_review_info":
+                            tmp_list.append([i, review_count, sum_comments_count, code_review_1_sum_comments_count, cnt])
+                        else:
+                            tmp_list.append([i, count])
                     else:
                         for inde,chk in enumerate(tmp_list):
                             if i in chk:
@@ -105,14 +149,54 @@ def fetch_gerrit_statistics(args):
                         cmd = "/changes/?q=%s" % "%20".join(query) + urllib.parse.quote_plus(' is:open (label:Verified=ok AND NOT label:Code-Review-2 AND NOT label:Code-Review-1)')
                     elif st_item == "need_to_address_comments":
                         cmd = "/changes/?q=%s" % "%20".join(query) + urllib.parse.quote_plus(' status:open  (label:Code-review-1 OR label:Code-review-2)')
+                    elif st_item == "patch_review_info":
+                        query += ["reviewedby:"+args.reviewer]
+                        cmd = "/changes/?q=%s" % "%20".join(set(query))
                     else:
                         cmd = "/changes/?q=%s" % "%20".join(query)
 
                     changes = rest.get(cmd)
+                    if st_item == "patch_review_info":
+                        review_count = 0
+                        change_ids = [each_review['change_id'] for each_review in changes if True]
+                        review_count = len(change_ids)
+                        sum_comments_count = 0
+                        code_review_1_sum_comments_count = 0
+                        cnt = 0
+                        for change_id in change_ids:
+                            tmp_query = "/changes/" + change_id + "/comments"
+                            out = rest.get(tmp_query)
+                            comments_count = 0
+                            for item in out.values():
+                                for i in item:
+                                    if i["author"]["username"] == args.reviewer: 
+                                        comments_count = comments_count + 1
+                            sum_comments_count = sum_comments_count + comments_count
+                            tmp_query = "/changes/" + change_id + "/detail"
+                            out = rest.get(tmp_query)
+                            code_review_1_comments_count = 0
+                            for item in out["labels"]["Code-Review"]["all"]:
+                                for key in item:
+                                    if key == "username":
+                                        if item[key] == args.reviewer:
+                                            if item["value"] == 1:
+                                                code_review_1_comments_count = code_review_1_comments_count + 1
+                            code_review_1_sum_comments_count = code_review_1_sum_comments_count + code_review_1_comments_count
+
+                            cnt = 0
+                            if "approved" in out["labels"]["Code-Review"].keys():
+                                if out["labels"]["Code-Review"]["approved"]["username"] == args.reviewer:
+                                    cnt = cnt + 1
+                            else:
+                                cnt = 0
+
                     count = len(changes)
                     mon=mon+"-"+str(yr)
                     if index_o == 0:
-                        tmp_list.append([mon, count])
+                        if st_item == "patch_review_info":
+                            tmp_list.append([mon, review_count, sum_comments_count, code_review_1_sum_comments_count, cnt])
+                        else:
+                            tmp_list.append([mon, count])
                     else:
                         for inde,chk in enumerate(tmp_list):
                             if mon in chk:
@@ -164,8 +248,17 @@ def fetch_gerrit_statistics_D(args):
 def fetch_gerrit_statistics_E(args):
     """
     """
-    print("TODO:Implementation is in progress")
-    pass
+    args.status = "patch_review_info"
+    data = args.reviewer.split(',')
+    tmp_csv_output_file = args.csv_output_file
+    tmp_chart_output_file = args.chart_output_file
+    for reviewer in data:
+        args.reviewer = reviewer
+        args.csv_output_file = "{0}_{2}{1}".format(*os.path.splitext(args.csv_output_file) + (args.reviewer,))
+        args.chart_output_file = "{0}_{2}{1}".format(*os.path.splitext(args.chart_output_file) + (args.reviewer,))
+        fetch_gerrit_statistics(args)
+        args.csv_output_file = tmp_csv_output_file
+        args.chart_output_file = tmp_chart_output_file
 
 def fetch_gerrit_statistics_A_D(args):
     """
@@ -261,6 +354,11 @@ def main():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     E_parser = _parser_add_argument(E_parser)
+    E_parser.add_argument(
+        '--reviewer',
+        help="reviewer usernames with comma separated values. Example: bob,kevin",
+        metavar=('reviewer'), dest='reviewer', required=True,
+        type=str)
     E_parser.set_defaults(func=fetch_gerrit_statistics_E)
 
     A_D_generate_chart_parser = subparsers.add_parser(
