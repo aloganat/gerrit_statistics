@@ -13,6 +13,8 @@ import matplotlib.pyplot as plt
 import urllib.parse
 from datetime import timedelta
 import os
+from requests.auth import HTTPBasicAuth
+import requests
 
 def fetch_gerrit_statistics(args):
     """
@@ -20,7 +22,10 @@ def fetch_gerrit_statistics(args):
     level = logging.INFO
     logging.basicConfig(format="%(asctime)s %(levelname)s %(message)s", level=level)
 
-    auth = None
+    if args.http_username and args.http_password:
+        auth = HTTPBasicAuth(args.http_username, args.http_password)
+    else:
+        auth = None
 
     rest = GerritRestAPI(url=args.gerrit_url, auth=auth)
 
@@ -154,7 +159,6 @@ def fetch_gerrit_statistics(args):
                         cmd = "/changes/?q=%s" % "%20".join(set(query))
                     else:
                         cmd = "/changes/?q=%s" % "%20".join(query)
-
                     changes = rest.get(cmd)
                     if st_item == "patch_review_info":
                         review_count = 0
@@ -280,6 +284,19 @@ def _parser_add_argument(parser_obj):
         help="Gerrit server url to process the request. Example: https://review.gluster.org/",
         metavar=('gerrit_url'), dest='gerrit_url', required=True,
         type=str)
+
+    parser_obj.add_argument(
+        '--http-username',
+        help="Gerrit HTTP username.",
+        metavar=('http_username'), dest='http_username', default=None,
+        type=str)
+
+    parser_obj.add_argument(
+        '--http-password',
+        help="Gerrit HTTP password. Note: Please generate this password in Settings->HTTP Password page.",
+        metavar=('http_password'), dest='http_password', default=None,
+        type=str)
+
     parser_obj.add_argument(
         '--project-name',
         help="Project name for fetching the statistics. Example: glusto-tests",
