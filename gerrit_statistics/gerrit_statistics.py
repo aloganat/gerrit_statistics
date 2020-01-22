@@ -15,6 +15,8 @@ from datetime import timedelta
 import os
 from requests.auth import HTTPBasicAuth
 import requests
+import re
+import copy
 
 def fetch_gerrit_statistics(args):
     """
@@ -37,6 +39,8 @@ def fetch_gerrit_statistics(args):
         #args.start_date = str((dt.strptime(args.start_date, "%Y-%m-%d") - timedelta(days=1)).date())
         args.end_date = str((dt.strptime(args.end_date, "%Y-%m-%d") + timedelta(days=1)).date())
         tmp_list = []
+        detailed_info_list = []
+        info_tmp_list = []
         for index_o,st_item in enumerate(st_list):
             query = ["project:"+args.project_name]
             if st_item == "pendingreview" or st_item == "need_to_address_comments" or st_item == "patch_review_info":
@@ -57,7 +61,9 @@ def fetch_gerrit_statistics(args):
             end_month = (calendar.month_name[int(args.end_date.split('-')[1])])
             end_year = int(args.end_date.split('-')[0])
             month_list = []
+            flag = 0
             if start_month == end_month and start_year == end_year:
+                detailed_count_list = []
                 query += ["after:"+args.start_date]
                 query += ["until:"+args.end_date]
                 month_list.append(start_month)
@@ -104,6 +110,28 @@ def fetch_gerrit_statistics(args):
                                 cnt = cnt + 1
                         else:
                             cnt = 0
+                else:
+                        summary_list = [item["subject"] for item in changes if True]
+                        testfix_count = 0
+                        libfix_count = 0
+                        test_count = 0
+                        lib_count = 0
+                        uncategorised_count = 0
+                        for str_item in summary_list:
+                            if re.search(r'^\s*\[testfix\].*',str_item,re.IGNORECASE):
+                                testfix_count += 1
+                            elif re.search(r'^\s*\[libfix\].*',str_item,re.IGNORECASE):
+                                libfix_count += 1
+                            elif re.search(r'^\s*\[test\].*',str_item,re.IGNORECASE):
+                                test_count += 1
+                            elif re.search(r'^\s*\[lib\].*',str_item,re.IGNORECASE):
+                                lib_count += 1
+                            else:
+                                uncategorised_count += 1
+
+                        detailed_count = "TestFixF:" + str(testfix_count) + ",LibFix:" + str(libfix_count) + ",Test:" + str(test_count) + ",Lib:" + str(lib_count) + ",Uncategorised:" + str(uncategorised_count)
+                        detailed_count_list.append(detailed_count)
+                        flag = 1
 
                 count = len(changes)
                 for i in month_list:
@@ -116,7 +144,9 @@ def fetch_gerrit_statistics(args):
                         for inde,chk in enumerate(tmp_list):
                             if i in chk:
                                 tmp_list[inde].append(count)
-
+                tmp_detailed_list = copy.deepcopy(tmp_list)
+                info_tmp_list.append(tmp_detailed_list)
+                detailed_info_list.append(detailed_count_list)
             else:
 
                 sd = dt.strptime(args.start_date, "%Y-%m-%d") 
@@ -128,6 +158,7 @@ def fetch_gerrit_statistics(args):
                 for month in calendar.month_name[s_month:e_month+1]:
                     month_list.append(month)
                 mon_num = len(lst)
+                detailed_count_list = []
                 for index,mont in enumerate(lst):
                     mon = mont.split('-')[0]
                     yr = mont.split('-')[1]
@@ -160,6 +191,7 @@ def fetch_gerrit_statistics(args):
                     else:
                         cmd = "/changes/?q=%s" % "%20".join(query)
                     changes = rest.get(cmd)
+ 
                     if st_item == "patch_review_info":
                         review_count = 0
                         change_ids = [each_review['change_id'] for each_review in changes if True]
@@ -193,6 +225,28 @@ def fetch_gerrit_statistics(args):
                                     cnt = cnt + 1
                             else:
                                 cnt = 0
+                    else:
+                        summary_list = [item["subject"] for item in changes if True]
+                        testfix_count = 0
+                        libfix_count = 0
+                        test_count = 0
+                        lib_count = 0
+                        uncategorised_count = 0
+                        for str_item in summary_list:
+                            if re.search(r'^\s*\[testfix\].*',str_item,re.IGNORECASE):
+                                testfix_count += 1
+                            elif re.search(r'^\s*\[libfix\].*',str_item,re.IGNORECASE):
+                                libfix_count += 1
+                            elif re.search(r'^\s*\[test\].*',str_item,re.IGNORECASE):
+                                test_count += 1
+                            elif re.search(r'^\s*\[lib\].*',str_item,re.IGNORECASE):
+                                lib_count += 1
+                            else:
+                                uncategorised_count += 1
+
+                        detailed_count = "TestFixF:" + str(testfix_count) + ",LibFixF:" + str(libfix_count) + ",Test:" + str(test_count) + ",Lib:" + str(lib_count) + ",Uncategorised:" + str(uncategorised_count)
+                        detailed_count_list.append(detailed_count)
+                        flag = 1
 
                     count = len(changes)
                     mon=mon+"-"+str(yr)
@@ -205,11 +259,12 @@ def fetch_gerrit_statistics(args):
                         for inde,chk in enumerate(tmp_list):
                             if mon in chk:
                                 tmp_list[inde].append(count)
-
+                tmp_detailed_list = copy.deepcopy(tmp_list)
+                info_tmp_list.append(tmp_detailed_list)
+                detailed_info_list.append(detailed_count_list)
             with open(args.csv_output_file, 'w', newline='') as file:
                 writer = csv.writer(file)
                 writer.writerows(tmp_list)
-
 
         df = pd.read_csv(args.csv_output_file,sep=",")
 
@@ -220,6 +275,25 @@ def fetch_gerrit_statistics(args):
 
         ax.set_ylabel("Number of patches")
         plt.savefig(args.chart_output_file)
+
+
+        if flag:
+            for index, outer in enumerate(info_tmp_list):
+                tmp_list1 = outer[1:]
+                for ind, inner in enumerate(detailed_info_list[index]):
+                    tmp_list1[ind][-1] = str(tmp_list1[ind][-1]) + "," + inner
+                if index == 0:
+                    new_list = tmp_list1
+                else:
+                    li = [item[-1] for item in tmp_list1]
+                    for i, item in enumerate(li):
+                        new_list[i].append(item)
+            new_list.insert(0, tmp_list[0])
+
+            args.csv_output_file = "{0}_{2}.{1}".format(*args.csv_output_file.rsplit('.', 1) + ["detailed_info"])
+            with open(args.csv_output_file, 'w', newline='') as file:
+                writer = csv.writer(file)
+                writer.writerows(new_list)
 
     except RequestException as err:
         logging.error("Error: %s", str(err))
