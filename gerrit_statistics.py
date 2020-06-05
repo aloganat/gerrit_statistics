@@ -183,13 +183,21 @@ def fetch_gerrit_statistics(args):
                         query += ["until:"+tmp_date]
                     if st_item == "pendingreview":
                         cmd = "/changes/?q=%s" % "%20".join(query) + urllib.parse.quote_plus(' is:open (label:Verified=ok AND NOT label:Code-Review-2 AND NOT label:Code-Review-1)')
+                        if args.owner:
+                            cmd += urllib.parse.quote_plus(' owner:' + args.owner)
                     elif st_item == "need_to_address_comments":
                         cmd = "/changes/?q=%s" % "%20".join(query) + urllib.parse.quote_plus(' status:open  (label:Code-review-1 OR label:Code-review-2)')
+                        if args.owner:
+                            cmd += urllib.parse.quote_plus(' owner:' + args.owner)
                     elif st_item == "patch_review_info":
                         query += ["reviewedby:"+args.reviewer]
                         cmd = "/changes/?q=%s" % "%20".join(set(query))
+                    elif st_item == "merged" and args.owner:
+                        cmd = "/changes/?q=%s" % "%20".join(query) + urllib.parse.quote_plus(' owner:' + args.owner)
                     else:
                         cmd = "/changes/?q=%s" % "%20".join(query)
+
+                    print (cmd)
                     changes = rest.get(cmd)
  
                     if st_item == "patch_review_info":
@@ -422,6 +430,11 @@ def main():
 
     B_parser = _parser_add_argument(B_parser)
     B_parser.set_defaults(func=fetch_gerrit_statistics_B)
+    B_parser.add_argument(
+        '--owner',
+        help="owner usernames with comma separated values. Example: bob,kevin",
+        metavar=('owner'), dest='owner',
+        type=str)
 
     C_parser = subparsers.add_parser(
         'C',
@@ -430,6 +443,11 @@ def main():
 
     C_parser = _parser_add_argument(C_parser)
     C_parser.set_defaults(func=fetch_gerrit_statistics_C)
+    C_parser.add_argument(
+        '--owner',
+        help="owner usernames with comma separated values. Example: bob,kevin",
+        metavar=('owner'), dest='owner',
+        type=str)
 
     D_parser = subparsers.add_parser(
         'D',
@@ -438,6 +456,11 @@ def main():
 
     D_parser = _parser_add_argument(D_parser)
     D_parser.set_defaults(func=fetch_gerrit_statistics_D)
+    D_parser.add_argument(
+        '--owner',
+        help="owner usernames with comma separated values. Example: bob,kevin",
+        metavar=('owner'), dest='owner',
+        type=str)
 
     E_parser = subparsers.add_parser(
         'E',
